@@ -25,15 +25,7 @@ rpiID = "RPI1"
 Environment = "House"
 
 
-#Serial Information
-ser = serial.Serial(
-	port='/dev/ttyAMA0',
-	baudrate = 9600,
-	parity=serial.PARITY_NONE,
-	stopbits=serial.STOPBITS_ONE,
-	bytesize=serial.EIGHTBITS,
-	timeout=1
-	)
+
 
 
 def on_connect(client, userdata, flags, rc):
@@ -109,19 +101,46 @@ def PublishMQTTMsg(msgType, payload, dev):
 		print("Published mqtt message: [" + topic + "]: " + "[" + payload + "]")
 		publish.single(topic, payload, hostname="mqttBrokerAddress")
 
-
-client = mqtt.Client()
-client.on_connect = on_connect
-client.on_message = on_message
-
-client.connect(mqttBrokerAddress, 1883, 60)
-
-client.loop_forever()
-print("MQTT client connected!")
+def CleanUp():
+	print("Ending and cleaning up")
+	ser.close()
+	client.disconnect()
 
 try:
+	#Serial Information
+	print("Connecting Serial port")
+	ser = serial.Serial(
+		port='/dev/ttyAMA0',
+		baudrate = 9600,
+		parity=serial.PARITY_NONE,
+		stopbits=serial.STOPBITS_ONE,
+		bytesize=serial.EIGHTBITS,
+		timeout=1
+	)
+
+except:
+	print("Failed to connect serial")
+	raise SystemExit
+
+try:
+	client = mqtt.Client()
+	client.on_connect = on_connect
+	client.on_message = on_message
+
+	client.connect(mqttBrokerAddress, 1883, 60)
+
+	client.loop_start()
+	print("MQTT client connected!")
+
+
 	while True:
 		read_serial = ser.readline()
 		HandleSerialMessage(read_serial)
+
 except (KeyboardInterrupt, SystemExit):
-	raise
+	print("Interrupt received")
+	CleanUp()
+
+except (RunTimeError):
+	print("Run-Time Error")
+	CleanUp()
