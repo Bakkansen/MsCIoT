@@ -34,8 +34,11 @@ def on_connect(client, userdata, flags, rc):
 
 
 def on_message(client, userdata, msg):
-    print("Received data from " + msg.topic + ": " + msg.payload)
-    HandleMQTTMessage(msg)
+	try:
+	    print("Received data from " + msg.topic + ": " + msg.payload)
+	    HandleMQTTMessage(msg)
+	except (UnicodeDecodeError):
+		print("Received faulty msg")
 
 
 def HandleMQTTMessage(msg):
@@ -59,9 +62,9 @@ def HandleMQTTMessage(msg):
 	if (msgType == "Action"):
 		if (msgDev == "#"):
 			for dev in devList.keys():
-				ActionMsgRcvd(dev, msg.payload)
+				ActionMsgRcvd(dev, msg.payload.rstrip())
 		elif (msgDev in devList.keys()):
-			ActionMsgRcvd(msgDev, msg.payload)
+			ActionMsgRcvd(msgDev, msg.payload.rstrip())
 
 
 def ActionMsgRcvd(dev, msg):
@@ -74,8 +77,12 @@ def ActionMsgRcvd(dev, msg):
 
 
 def HandleSerialMessage(msg):
-	print("Received Serial message: [" + msg + "]")
+	msg.rstrip('\r\n')
 	parsedMsg = msg.split(':')
+	if (len(parsedMsg) != 3):
+		return
+
+	print("Received Serial message: [" + msg + "]")
 	dev = parsedMsg[0].upper()
 	comp = parsedMsg[1]
 	compState = parsedMsg[2]
@@ -91,15 +98,18 @@ def HandleSerialMessage(msg):
 
 
 def SendSerialMsg(serialMsg):
-	print("Sent serial message: [" + serialMsg + "]")
-	ser.write(serialMsg.encode())
+	#print("Sent serial message: [" + serialMsg + "]")
+	sendMsg = "<" + serialMsg + ">"
+	sendMsg = sendMsg.encode()
+	ser.write(sendMsg)
+	print("Sent serial message: [" + sendMsg + "]")
 
 
 def PublishMQTTMsg(msgType, payload, dev):
 	if (dev in devList.keys()):
 		topic = "Pettjo/" + msgType + "/" + Environment + "/" + rpiID + "/" + dev		
 		print("Published mqtt message: [" + topic + "]: " + "[" + payload + "]")
-		publish.single(topic, payload, hostname="mqttBrokerAddress")
+		publish.single(topic, payload, hostname=mqttBrokerAddress)
 
 def CleanUp():
 	print("Ending and cleaning up")
@@ -110,7 +120,7 @@ try:
 	#Serial Information
 	print("Connecting Serial port")
 	ser = serial.Serial(
-		port='/dev/ttyAMA0',
+		port='/dev/ttyUSB0',
 		baudrate = 9600,
 		parity=serial.PARITY_NONE,
 		stopbits=serial.STOPBITS_ONE,
@@ -135,12 +145,12 @@ try:
 
 	while True:
 		read_serial = ser.readline()
-		HandleSerialMessage(read_serial)
+		HandleSerialMessage(read_serial.rstrip())
 
 except (KeyboardInterrupt, SystemExit):
 	print("Interrupt received")
 	CleanUp()
 
-except (RunTimeError):
+except (RuntimeError):
 	print("Run-Time Error")
 	CleanUp()
