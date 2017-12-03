@@ -17,7 +17,7 @@ greenMsg = "#toggleGreenLed"
 redMsg = "#toggleRedLed"
 yellowMsg = "#toggleYellowLed"
 
-devList = { "DEV0": [greenMsg, "LED", "Off"], "DEV1": [redMsg. "LED", "Off"]. "DEV2": [yellowMsg, "LED", "Off"]}
+devList = { "DEV0": [greenMsg, "LED", "Off"], "DEV1": [redMsg, "LED", "Off"], "DEV2": [yellowMsg, "LED", "Off"]}
 
 
 #RPI Information
@@ -38,7 +38,7 @@ ser = serial.Serial(
 
 def on_connect(client, userdata, flags, rc):
     print("Connected with result code " + str(rc))
-    client.subscribe(topic)
+    client.subscribe(listenTopic)
 
 
 def on_message(client, userdata, msg):
@@ -61,7 +61,7 @@ def HandleMQTTMessage(msg):
 	if (len(topicSplit) > 4):
 		msgDev = topicSplit[4].upper()
 
-	if (msgRPI != rpiID && msgRPI != "#"):
+	if (msgRPI != rpiID and msgRPI != "#"):
 		return
 
 	if (msgType == "Action"):
@@ -74,14 +74,16 @@ def HandleMQTTMessage(msg):
 
 def ActionMsgRcvd(dev, msg):
 	# MQTT msg format: "Comp:CompState"
+	print("Recvd MQTTmsg: [" + dev + "] : [" + msg + "]")
 	parsedMsg = msg.split(':')
 	if (parsedMsg[0].upper() in devList[dev]):
-		SendSerialMsg(dev + ":" + msg[0].upper() + : + msg[1].upper)
+		sendString = dev + ":" + parsedMsg[0] + ":" + parsedMsg[1]
+		SendSerialMsg(sendString)
 
 
 def HandleSerialMessage(msg):
 	print("Received Serial message: [" + msg + "]")
-	parsedMsg = msg.split(':')	
+	parsedMsg = msg.split(':')
 	dev = parsedMsg[0].upper()
 	comp = parsedMsg[1]
 	compState = parsedMsg[2]
@@ -115,7 +117,11 @@ client.on_message = on_message
 client.connect(mqttBrokerAddress, 1883, 60)
 
 client.loop_forever()
+print("MQTT client connected!")
 
-while True:
-	read_serial = ser.readline()
-	HandleSerialMessage(read_serial)
+try:
+	while True:
+		read_serial = ser.readline()
+		HandleSerialMessage(read_serial)
+except (KeyboardInterrupt, SystemExit):
+	raise
