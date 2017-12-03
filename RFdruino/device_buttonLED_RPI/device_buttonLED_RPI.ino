@@ -1,7 +1,7 @@
 #include <RFduinoGZLL.h>
 #include "PLAB_PushButton.h"
 
-device_t role = DEVICE2; // DEV0 = RED, DEV1 = GREEN, DEV2 = YELLOW
+device_t role = DEVICE0; // DEV0 = RED, DEV1 = GREEN, DEV2 = YELLOW
 
 const int ledPin = 6;
 const int buttonPin = 2;
@@ -53,8 +53,9 @@ void loop() {
 
 void RFduinoGZLL_onReceive(device_t device, int rssi, char *data, int len) {
   // ignore acknowledgement without payload
-  if (len > 0 && device == HOST) { // HOST = 8    
+  if (len > 0 && device == HOST) { // HOST = 8        
     String str = data;
+    Serial.println("Received: " + str);
     String comp = str.substring(0, 4);
     if (comp.equals("LED")) {
       String state = str.substring(5);

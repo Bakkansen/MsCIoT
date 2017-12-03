@@ -8,15 +8,20 @@ int buttonState = 0;
 const int rxPin = 0;
 const int txPin = 1;
 
-bool dev0HasMessage = false;
-bool dev1HasMessage = false;
-bool dev2HasMessage = false;
+boolean dev0HasMessage = false;
+boolean dev1HasMessage = false;
+boolean dev2HasMessage = false;
+
+boolean newData = false;
 
 String dev0SendString = "test";
 String dev1SendString = "";
 String dev2SendString = "";
 
 String readString = "";
+
+const byte numChars = 32;
+char receivedChars[numChars];
 
 void setup() {
   // put your setup code here, to run once:
@@ -26,16 +31,11 @@ void setup() {
 }
 
 void loop() {
-  // put your main code here, to run repeatedly: 
-  if (Serial.available())  {
-    char c = Serial.read();   // gets one byte from serial buffer
-    if (c == '\n') {           // serial always ends on 'X'
-      handleSerialData(readString);
-      readString="";          // clears variable for new input      
-    } else if (c != '\r') {     
-      readString += c;        // makes the string readString
-    }
-  }  
+  recvWithStartEndMarkers();
+  if (newData == true) {
+    String str(receivedChars);
+    handleSerialData(str);     
+  }
 }
 
 void RFduinoGZLL_onReceive(device_t device, int rssi, char *data, int len) {
@@ -84,8 +84,43 @@ void handlePollRequests(String device) {
   }
 }
 
+void recvWithStartEndMarkers() {
+    static boolean recvInProgress = false;
+    static byte ndx = 0;
+    char startMarker = '<';
+    char endMarker = '>';
+    char rc;
+ 
+ // if (Serial.available() > 0) {
+    while (Serial.available() > 0 && newData == false) {
+        rc = Serial.read();
+        Serial.println("Char: " + rc);
+        if (recvInProgress == true) {
+            if (rc != endMarker) {
+                receivedChars[ndx] = rc;
+                ndx++;
+                if (ndx >= numChars) {
+                    ndx = numChars - 1;
+                }
+            }
+            else {
+                receivedChars[ndx] = '\0'; // terminate the string
+                recvInProgress = false;
+                ndx = 0;
+                newData = true;
+            }
+        }
+
+        else if (rc == startMarker) {
+            recvInProgress = true;
+        }
+    }
+}
+
 // Handler for received serial data
-void handleSerialData(String str) {  
+void handleSerialData(String str) { 
+  Serial.println("HandleSerialData!"); 
+  newData = false;
   String devID = str.substring(0, 4);
   devID.toUpperCase();
   Serial.println("DEVID: " + devID + ". Msg: " + str.substring(5));
@@ -102,6 +137,7 @@ void handleSerialData(String str) {
     dev2HasMessage = true;
     dev2SendString = str.substring(5);  
   }
+
   
 }
 
