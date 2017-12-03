@@ -100,7 +100,7 @@ def HandleSerialMessage(msg):
 
 def SendSerialMsg(serialMsg):
 	print("Sent serial message: [" + serialMsg + "]")
-	ser.write(serialMsg)
+	ser.write(serialMsg.encode())
 
 
 def PublishMQTTMsg(msgType, payload, dev):
