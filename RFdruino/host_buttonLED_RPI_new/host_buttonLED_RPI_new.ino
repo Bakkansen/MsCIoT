@@ -41,15 +41,7 @@ void loop() {
 void RFduinoGZLL_onReceive(device_t device, int rssi, char *data, int len) {
   // if we receive a poll, send toggle message if registered.
   if (len < 1) {
-    String dev = "";
-    if (device == DEVICE0) {
-      dev = "DEV0";
-    } else if (device == DEVICE1) {
-      dev = "DEV1";
-    } else if (device == DEVICE2) {
-      dev = "DEV2";
-    }
-    handlePollRequests(dev);
+    handlePollRequests(device);
   // If we receive anything else than a NULL msg, handle it
   } else {
     // SETT OPP SLIK AT SERIAL SENDER MELDINGER TILBAKE TIL ARDUNIO
@@ -65,18 +57,18 @@ void RFduinoGZLL_onReceive(device_t device, int rssi, char *data, int len) {
 }
 
 // Piggy-backs toggle led message if toggle led for device is registered.
-void handlePollRequests(String device) {
-  if (device == "DEV0" && dev0HasMessage == true) {
-    Serial.println("Sending GZLLmsg to DEV0");     
+void handlePollRequests(device_t device) {
+  if (device == DEVICE0 && dev0HasMessage == true) {
+    // Serial.println("Sending GZLLmsg to DEV0");     
     RFduinoGZLL.sendToDevice(DEVICE0, dev0SendString);
     dev0HasMessage = false;
     dev0SendString = "";
-  } else if (device == "DEV1" && dev1HasMessage == true) {
+  } else if (device == DEVICE1 && dev1HasMessage == true) {
     //Serial.println("Sending msg to DEV1");     
     RFduinoGZLL.sendToDevice(DEVICE1, dev1SendString);
     dev1HasMessage = false;
     dev1SendString = "";
-  } else if (device == "DEV2" && dev2HasMessage == true) {
+  } else if (device == DEVICE2 && dev2HasMessage == true) {
     //Serial.println("Sending msg to DEV2");     
     RFduinoGZLL.sendToDevice(DEVICE2, dev2SendString);
     dev2HasMessage = false;
