@@ -12,6 +12,8 @@ long previousMillis = 0;
 
 PLab_PushButton button(buttonPin); // Create a PushButton object
 
+// 
+int devices[8] = {0, 0, 0, 0, 0, 0, 0, 0}
 
 void setup() {
   // put your setup code here, to run once:
@@ -40,12 +42,11 @@ void loop() {
 }
 
 void RFduinoGZLL_onReceive(device_t device, int rssi, char *data, int len) {
-  // ignore acknowledgement without payload
-  if (len > 0 && device == HOST) { // HOST = 8    
-    String str = data;
-    str = str.substring(0, 10);
-    if (str.equals("#toggleLed")) {
-      toggleLed();      
+  if (mode == 0) {
+    String str = data;    
+    str = str.substring(0, 2);
+    if (str.equals("#c")) {
+      
     }
   }
 }
