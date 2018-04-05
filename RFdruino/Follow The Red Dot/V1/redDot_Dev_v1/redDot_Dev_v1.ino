@@ -70,5 +70,9 @@ void RFduinoGZLL_onReceive(device_t device, int rssi, char *data, int len) {
     digitalWrite(ledPin, HIGH);
     timeout = millis();
   }
+  if (str.equals("#g")) {
+    hasTheRedDot = false;
+    mode = 0;    
+  }
 }
 

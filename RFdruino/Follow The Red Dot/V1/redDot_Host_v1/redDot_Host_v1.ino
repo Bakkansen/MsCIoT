@@ -154,6 +154,11 @@ void resetGame() {
 void finishGame() {
   mode = 2;
   Serial.println("Game Finished!");
+  for (int device = 0; device < sizeof(devices); device++) {
+    if (devices[device] == 1) {
+      RFduinoGZLL.sendToDevice(devList[device], "#g");
+    }
+  }
   /*
   finishTime = millis();
   float avgPressTime = (finishTime - startTime) / N;
