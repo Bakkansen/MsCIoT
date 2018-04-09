@@ -35,7 +35,7 @@ unsigned long finishTime = 0;
 void setup() {
   // put your setup code here, to run once:  
   pinMode(ledPin, OUTPUT);
-  Serial.begin(9600);
+  Serial.begin(115200);
   RFduinoGZLL.begin(role);
 }
 
