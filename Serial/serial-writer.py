@@ -19,9 +19,9 @@ except:
 
 try:
   while 1:
-    text = input("prompt ").upper()
-    if (text.equals('B') || text.equals('C')):
-      ser.write(text)
+    text = input("prompt ")
+    if (text == "B" or text == "C"):
+      ser.write(text.encode())
     else:
       print("Invalid input, try again");
 

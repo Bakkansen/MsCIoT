@@ -20,7 +20,7 @@ except:
 try:
   while 1:
     x=ser.readline()
-    if (x.len > 1):
+    if (len(x) > 1):
       print x
 
 except (KeyboardInterrupt, SystemExit):
