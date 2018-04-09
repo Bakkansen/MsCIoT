@@ -8,6 +8,9 @@ const int buttonPin = 2;
 
 bool ledOn = false;
 
+unsigned long poll = 0;
+const long pollInterval = 200;
+
 // PushButton setup
 PLab_PushButton button(buttonPin);
 
@@ -30,8 +33,11 @@ void loop(){
       RFduinoGZLL.sendToHost("#c");
     }
   }
-  RFduinoGZLL.sendToHost(NULL, 0);
-  delay(200);
+  unsigned long currentMillis = millis();
+  if (currentMillis - poll >= pollInterval) {
+    RFduinoGZLL.sendToHost(NULL, 0);
+    poll = currentMillis;
+  }
   
 }
 
