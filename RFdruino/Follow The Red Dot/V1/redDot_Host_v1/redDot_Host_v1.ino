@@ -6,30 +6,17 @@ device_t role = HOST;
 const int ledPin = 6;
 const int buttonPin = 2;
 
-// LED blink variables
-bool isBlinking = false;
-int ledState = LOW;
-unsigned long blinkMillis = 0;
-const long blinkInterval = 200;
-int blinkCount = 0;
-const int blinkAmount = 4;
-
 // Operation mode of the RFduino
 int mode = 0; // 0 = Start, 1 = GameMode, 2 = Completed
 
 // PushButton setup
 PLab_PushButton button(buttonPin);
 
-// List of connected devices
-int devices[8] = {0, 0, 0, 0, 0, 0, 0, 0};
-device_t devList[8] = {DEVICE0, DEVICE1, DEVICE2, DEVICE3, DEVICE4, DEVICE5, DEVICE6, DEVICE7};
+const int connectedDevices = 3; // identify the number of devices that is connected to the game
 
-// Red Dot Variables
-int dots = 0;
-int timeouts = 0;
-const int N = 10;
-unsigned long startTime = 0;
-unsigned long finishTime = 0;
+// List of connected devices
+device_t devList[8] = {DEVICE0, DEVICE1, DEVICE2, DEVICE3, DEVICE4, DEVICE5, DEVICE6, DEVICE7};
+device_t currentDotHolder = HOST;
 
 
 void setup() {
@@ -44,28 +31,10 @@ void loop(){
   if (mode == 0) {
     if (button.pressed()) {
       mode = 1;
-      isBlinking = false;
-      digitalWrite(ledPin, LOW);
-      startTime = millis();
       Serial.println("Starting game mode");
       sendNewDot();
-    }
-    if (isBlinking) {
-      unsigned long currentMillis = millis();
-      if (currentMillis - blinkMillis >= blinkInterval) {
-        blinkMillis = currentMillis;
-      
-        if (blinkCount < blinkAmount) {
-          blinkCount += 1;
-          ledState = !ledState;
-          digitalWrite(ledPin, ledState);
-        } else {
-          isBlinking = false;
-          blinkCount = 0;          
-        }
-      }
-    }  
-  } else if (mode == 1 || mode == 2) {
+    } 
+  } else if (mode == 1) {
     if (button.pressed()) {
       resetGame();
     }    
@@ -75,134 +44,33 @@ void loop(){
 }
 
 void RFduinoGZLL_onReceive(device_t device, int rssi, char *data, int len) {
-  String str = data;    
-  str = str.substring(0, 2);
-  if (mode == 0) {
-    if (str.equals("#c")) {
-      connectDevice(device);
-      Serial.print("Connecting device :");
-      Serial.println(device);
+  if (device == currentDotHolder) {
+    String str = data;
+    if (str.startsWith("#BUTTON:P")) {
+      RFduinoGZLL.sendToDevice(currentDotHolder, "#LED:OFF");      
+      sendNewDot();
     }
-  } else if (mode == 1) {
-    
-    if (str.equals("#p")) {
-      Serial.print("Received #p from: ");
-      Serial.println(device);
-      dots += 1;
-      
-      if (dots >= N) {
-        finishGame();
-      } else {
-        sendNewDot();
-      }
-      
-    } else if (str.equals("#t")) {
-      Serial.print("Received #t from: ");
-      Serial.println(device);
-      dots += 1;
-      timeouts += 1;
-      
-      if (dots >= N) {
-        finishGame();
-      } else {
-        sendNewDot();
-      }
-    }
-    
-  }
-}
-
-void connectDevice(device_t device) {
-  switch (device){
-    case DEVICE0:
-      devices[0] = 1;
-      break;
-    case DEVICE1:
-      devices[1] = 1;
-      break;
-    case DEVICE2:
-      devices[2] = 1;
-      break;
-    case DEVICE3:
-      devices[3] = 1;
-      break;
-    case DEVICE4:
-      devices[4] = 1;
-      break;
-    case DEVICE5:
-      devices[5] = 1;
-      break;
-    case DEVICE6:
-      devices[6] = 1;
-      break;
-    case DEVICE7:
-      devices[7] = 1;
-      break;
-  }
+  }    
 }
 
 void resetGame() {
-  memset(devices, 0, sizeof(devices));
-  dots = 0;
-  timeouts = 0;
-  startTime = 0;
-  finishTime = 0;
+  RFduinoGZLL.sendToDevice(currentDotHolder, "#LED:OFF");
+  currentDotHolder = HOST;
   Serial.println("Game Reset, reconnect devices...");
   mode = 0;
 }
 
-void finishGame() {
-  mode = 2;
-  Serial.println("Game Finished!");
-  for (int device = 0; device < sizeof(devices); device++) {
-    if (devices[device] == 1) {
-      RFduinoGZLL.sendToDevice(devList[device], "#g");
-    }
-  }
-  /*
-  finishTime = millis();
-  float avgPressTime = (finishTime - startTime) / N;
-  
-  Serial.print("N: ");
-  Serial.println(N);
-  Serial.print("AvgPressTime: ");
-  Serial.println(avgPressTime);
-  Serial.print("Timeouts: ");
-  Serial.println(timeouts);
-  */
-}
+
 
 void sendNewDot() {
-  long randNumber = random(8);
-  if (devices[randNumber] == 1) {
-    if (RFduinoGZLL.sendToDevice(devList[randNumber], "#d")) {
-      Serial.print("Sent Dot to Device: ");
-      Serial.println(randNumber);
-      return;
-    } else {
-      Serial.print("Failed to send Dot to Deivce: ");
-      Serial.println(randNumber);
-    }
-  } 
-  sendNewDot();
-}
-
-void BlinkLed() {
-  // if we're not in Start Mode, return.
-  if (mode != 0) {
-    return;
-  }
-  // If we're already blinking, add two additional blinks
-  if (isBlinking) {
-    blinkCount -= 4;
-  // If we're not blinking, start blinking two times from now
-  } else {    
-    isBlinking = true;
-    blinkCount = 0;
-    blinkMillis = millis();  
-    ledState = HIGH;
-    digitalWrite(ledPin, ledState);
-  }  
-
+  long randNumber = random(connectedDevices);
+  if (devList[randNumber] == currentDotHolder) {
+    sendNewDot();
+  } else {
+    currentDotHolder = devList[randNumber];
+    RFduinoGZLL.sendToDevice(currentDotHolder, "#LED:ON");
+    Serial.print("Sent dot to: DEVICE");
+    Serial.println(randNumber);  
+  }   
 }
 

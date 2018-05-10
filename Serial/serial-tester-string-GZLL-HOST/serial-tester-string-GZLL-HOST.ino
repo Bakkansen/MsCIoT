@@ -2,8 +2,7 @@
 
 device_t role = HOST;
 
-typedef enum { NONE, DEV, MSG } states;
-states state = NONE;
+
 
 
 const char startChar = '<';
@@ -18,117 +17,134 @@ const unsigned int MAX_MSG_INPUT = 30;
 char dev[MAX_DEV_INPUT];      // Array to keep the device info received
 char msg[MAX_MSG_INPUT];    // Array to keep the component name
 
+enum state_t {
+  None,
+  Devi,
+  Msg
+};
+extern  state_t state = None;
 
-
-void setup() { 
-  state = NONE;
+void setup() {
+  state = None;
   Serial.begin(115200);
   RFduinoGZLL.begin(role);
 }
 
 void RFduinoGZLL_onReceive(device_t device, int rssi, char *data, int len) {
   String str = data;
-  str = str.substring(0, 2);
-  if (str.equals("#b")) {
-    Serial.println('B');
-  } else if (str.equals("#c")) {
-    Serial.println('C');
+  if (len > 1) {
+    Serial.println(str);
   }
 }
 
-void handleDelimiter() {
-  index_pos = 0;
-  if (state == DEV) {
-    state = MSG;
+void handleDelimiter() {  
+  if (state == Devi) {
+    index_pos = 0;  
+    state = Msg;
+  } else if (state == Msg) {
+    if (index_pos < (MAX_MSG_INPUT - 1)) {
+      msg[index_pos++] = ':';
+    }
   }
 }
 
 void handleIncomingData(const byte inByte) {
   switch (state) {
-    case DEV:
+    case Devi:
       if (index_pos < (MAX_DEV_INPUT - 1)) {
         dev[index_pos++] = inByte;
       }
       break;
 
-    case MSG:
-      if (index_pos < (MAX_COMP_INPUT - 1)) {
+    case Msg:
+      if (index_pos < (MAX_MSG_INPUT - 1)) {
         msg[index_pos++] = inByte;
       }
       break;
 
+  }
 }
 
 void handleStopCharReceived() {
-  String device(dev);
-  device_t receiver = getDevicetFromString(device);
-  
+  device_t receiver = getDevice();
+
   if (receiver != HOST) {
     RFduinoGZLL.sendToDevice(receiver, msg);
   }
-  state = NONE;
+  state = None;
 }
 
-device_t getDevicetFromString(string device) {
-  device_t receiver = HOST;
-  switch (device)  {
-    case "DEV0":
-    receiver = DEVICE0;
-    break;
+device_t getDevice() {
+  device_t receiver = DEVICE0;
+  int deviceInt = -1;
+  if (isDigit(dev[3])) {
+    deviceInt = dev[3] - '0';
+  } 
+  
+  Serial.println(dev[3]);
+  Serial.println(deviceInt);
+  
+  
+  switch (deviceInt)  {
+    case 0:
+      receiver = DEVICE0;
+      break;
 
-    case "DEV1":
-    receiver = DEVICE1;
-    break;
+    case 1:
+      receiver = DEVICE1;
+      break;
 
-    case "DEV2":
-    receiver = DEVICE2;
-    break;
+    case 2:
+      receiver = DEVICE2;
+      break;
 
-    case "DEV3":
-    receiver = DEVICE3;
-    break;
+    case 3:
+      receiver = DEVICE3;
+      break;
 
-    case "DEV4":
-    receiver = DEVICE4;
-    break;
+    case 4:
+      receiver = DEVICE4;
+      break;
 
-    case "DEV5":
-    receiver = DEVICE5;
-    break;
+    case 5:
+      receiver = DEVICE5;
+      break;
 
-    case "DEV6":
-    receiver = DEVICE6;
-    break;
+    case 6:
+      receiver = DEVICE6;
+      break;
 
-    case "DEV7":
-    receiver = DEVICE7;
-    break;
+    case 7:
+      receiver = DEVICE7;
+      break;
   }
   return receiver;
 }
 
 void processIncomingByte(const byte inByte) {
-  
+
   switch (inByte) {
-  
+
     case startChar:
-      state = DEV;    
+      state = Devi;
+      index_pos = 0;
       break;
-    
+
     case stopChar:
       handleStopCharReceived();
       break;
 
     case delimiter:
       handleDelimiter();
-      
+      break;
+
     default:
       handleIncomingData(inByte);
       break;
   }
 }
 
-void loop() {  
+void loop() {
   while (Serial.available() > 0) {
     processIncomingByte(Serial.read());
   }

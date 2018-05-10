@@ -28,9 +28,9 @@ void loop(){
     ledOn = !ledOn;
     digitalWrite(ledPin, ledOn);
     if (ledOn) {
-      RFduinoGZLL.sendToHost("#b");
+      RFduinoGZLL.sendToHost("#LED:ON");
     } else {
-      RFduinoGZLL.sendToHost("#c");
+      RFduinoGZLL.sendToHost("#LED:OFF");
     }
   }
   unsigned long currentMillis = millis();
@@ -43,12 +43,15 @@ void loop(){
 
 void RFduinoGZLL_onReceive(device_t device, int rssi, char *data, int len) {
   String str = data;
-  str = str.substring(0, 2);
-  if (str.equals("#b")) {
+  if (len > 1) {
+    Serial.print(str);  
+  }  
+  // str = str.substring(0, 5);
+  if (str.startsWith("#LEDON")) {
     ledOn = HIGH;
     digitalWrite(ledPin, ledOn);
   }
-  if (str.equals("#c")) {
+  if (str.startsWith("#LEDOFF")) {
     ledOn = LOW;
     digitalWrite(ledPin, ledOn);
   }
